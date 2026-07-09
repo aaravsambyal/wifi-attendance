@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-surface: #141218;
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-surface-variant: #2b2930;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .m3-qr-card {
+            background-color: var(--md-sys-color-surface-variant);
+            border-radius: 28px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        .qr-img-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            display: inline-block;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        img {
+            width: 280px;
+            height: 280px;
+            display: block;
+        }
+        .m3-btn-tonal {
+            background-color: var(--md-sys-color-primary);
+            color: #381E72;
+            border-radius: 20px;
+            padding: 10px 24px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+        .m3-btn-tonal:hover {
+            transform: scale(1.05);
+            color: #381E72;
+        }
+        h2 { color: var(--md-sys-color-on-surface); }
+        p { color: var(--md-sys-color-on-surface-variant); }
+    </style>
+</head>
+<body>
+
+    <div class="m3-qr-card">
+        <span class="material-icons-round fs-1 mb-2" style="color: var(--md-sys-color-primary);">qr_code_scanner</span>
+        <h2 class="fw-bold mb-1"><%= meeting.title %></h2>
+        <p class="mb-4">Scan with your camera to join the meeting</p>
+        
+        <div class="qr-img-wrapper">
+            <img src="<%= qrImage %>" alt="Attendance QR Code">
+        </div>
+        
+        <div class="d-flex align-items-center justify-content-center gap-2 mb-4" style="color: #81C784;">
+            <span class="material-icons-round">wifi_password</span>
+            <span class="fw-bold small text-uppercase ls-wide">Network Authenticated</span>
+        </div>
+        
+        <a href="/meeting/<%= meeting._id %>" class="m3-btn-tonal mt-2">
+            <span class="material-icons-round">arrow_back</span>
+            Back to Room
+        </a>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<%- include('partials/header') %>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="m3-card m3-card-elevated">
+            <div class="text-center mb-4">
+                <span class="material-icons-round fs-1 text-primary">login</span>
+                <h2 class="fw-bold mt-2">Welcome Back</h2>
+            </div>
+            
+            <% if (error) { %>
+                <div class="alert alert-danger py-2 border-0 small mb-3 m3-card" style="background-color: rgba(244, 67, 54, 0.1); color: #F44336; border-radius: 8px;">
+                    <span class="material-icons-round align-middle me-2" style="font-size: 18px;">error</span>
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <form action="/login" method="POST">
+                <div class="mb-3">
+                    <label class="small fw-bold mb-1 d-block">Username</label>
+                    <input type="text" name="username" class="m3-input" placeholder="Username" required>
+                </div>
+                <div class="mb-4">
+                    <label class="small fw-bold mb-1 d-block">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="password" class="m3-input" placeholder="Password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)" tabindex="-1">
+                            <span class="material-icons-round">visibility_off</span>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="m3-btn m3-btn-primary w-100 py-3">
+                    <span class="material-icons-round">login</span>
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="text-center mt-4 border-top pt-3">
+                <p class="small mb-0">New here? <a href="/signup" class="fw-bold text-decoration-none text-primary">Create an account</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

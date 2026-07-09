@@ -1,0 +1,528 @@
+<%- include('partials/header') %>
+
+<!-- Meeting Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="m3-card m3-card-elevated d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h2 class="fw-bold mb-0 text-primary"><%= meeting.title %></h2>
+                    <% if (meeting.active) { %>
+                        <span class="badge bg-success small" style="font-size: 10px; border-radius: 12px;">LIVE</span>
+                    <% } else { %>
+                        <span class="badge bg-secondary small" style="font-size: 10px; border-radius: 12px;">ENDED</span>
+                    <% } %>
+                </div>
+                <div class="small d-flex align-items-center gap-2">
+                    <span class="material-icons-round" style="font-size: 16px;">person</span>
+                    <%= meeting.hostId.username %> (Host)
+                    <span class="mx-1">•</span>
+                    <span class="material-icons-round" style="font-size: 16px;">calendar_today</span>
+                    <%= new Date(meeting.createdAt).toLocaleString() %>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <% if (isHost) { %>
+                    <% if (meeting.active) { %>
+                        <button class="m3-btn m3-btn-tonal" id="btnShare">
+                            <span class="material-icons-round">share</span>
+                            Share Link
+                        </button>
+                        <button class="m3-btn m3-btn-tonal" id="btnQR">
+                            <span class="material-icons-round">qr_code_2</span>
+                            QR Code
+                        </button>
+                        <form action="/meeting/<%= meeting._id %>/end" method="POST" onsubmit="return confirm('End meeting? This will close attendance.')">
+                            <button class="m3-btn" style="background-color: #D32F2F; color: white;">
+                                <span class="material-icons-round">call_end</span>
+                                End Meeting
+                            </button>
+                        </form>
+                    <% } else { %>
+                        <button onclick="generatePDFReport()" class="m3-btn m3-btn-primary">
+                            <span class="material-icons-round">picture_as_pdf</span>
+                            Download Report
+                        </button>
+                    <% } %>
+                <% } else if (userAttendance) { %>
+                    <% if (userAttendance.leaveDate) { %>
+                        <div class="d-flex gap-2">
+                            <div class="m3-btn" style="background-color: rgba(76, 175, 80, 0.1); color: #4CAF50; cursor: default; border: 1px solid rgba(76, 175, 80, 0.3);">
+                                <span class="material-icons-round">history</span>
+                                Left Session
+                            </div>
+                            <% if (meeting.active) { %>
+                                <a href="/join/<%= meeting._id %>" class="m3-btn m3-btn-primary">
+                                    <span class="material-icons-round">login</span>
+                                    Join Again
+                                </a>
+                            <% } %>
+                        </div>
+                    <% } else if (meeting.active) { %>
+                        <form action="/meeting/<%= meeting._id %>/leave" method="POST" onsubmit="return confirm('Leave this meeting?')">
+                            <button type="submit" class="m3-btn" style="background-color: #FF9800; color: white;">
+                                <span class="material-icons-round">exit_to_app</span>
+                                Leave Meeting
+                            </button>
+                        </form>
+                    <% } else { %>
+                        <div class="m3-btn" style="background-color: rgba(76, 175, 80, 0.1); color: #4CAF50; cursor: default; border: 1px solid rgba(76, 175, 80, 0.3);">
+                            <span class="material-icons-round">verified</span>
+                            Attendance Recorded
+                        </div>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- Link Share Overlay -->
+        <div id="shareOverlay" class="mt-3 collapse">
+            <div class="m3-card" style="border-left: 4px solid var(--md-sys-color-primary);">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-1 fw-bold text-primary small uppercase-ls">Meeting Join Link</h6>
+                        <code id="meetingUrl" class="text-on-surface"><%= `${url_origin}/join/${meeting._id}` %></code>
+                    </div>
+                    <button class="m3-btn m3-btn-primary" onclick="copyLink()">
+                        <span class="material-icons-round">content_copy</span>
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code Overlay -->
+        <div id="qrOverlay" class="mt-3 collapse">
+            <div class="m3-card text-center" style="border-left: 4px solid var(--md-sys-color-primary);">
+                <h6 class="mb-3 fw-bold text-primary small uppercase-ls">Scan to Join</h6>
+                <div class="p-3 bg-white d-inline-block rounded-3 mb-2 shadow-sm">
+                    <img src="<%= qrImage %>" alt="QR Code" style="width: 180px; height: 180px;">
+                </div>
+                <p class="small text-muted mb-0">Participants can scan this from your screen</p>
+            </div>
+        </div>
+
+        <% if (message) { %>
+            <div class="alert alert-success mt-3 border-0 small m3-card" style="background-color: rgba(76, 175, 80, 0.1); color: #4CAF50;"><%= message %></div>
+        <% } %>
+
+        <% if (error) { %>
+            <div class="alert alert-danger mt-3 border-0 small m3-card" style="background-color: rgba(244, 67, 54, 0.1); color: #F44336;"><%= error %></div>
+        <% } %>
+
+        <% if (!meeting.active) { %>
+            <div class="m3-card mt-3 text-center" style="background-color: var(--md-sys-color-surface-variant); border-left: 4px solid var(--md-sys-color-outline);">
+                <span class="material-icons-round fs-1 mb-2" style="color: var(--md-sys-color-on-surface-variant);">event_busy</span>
+                <h4 class="fw-bold mb-1">This meeting has ended</h4>
+                <p class="text-muted small mb-0">Attendance is closed and real-time updates are disabled for this session.</p>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Polls Column -->
+    <div class="col-lg-6">
+        <div class="m3-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round text-primary">poll</span>
+                    <h4 class="fw-bold mb-0">Meeting Polls</h4>
+                </div>
+                <% if (isHost && meeting.active) { %>
+                    <button class="m3-btn m3-btn-tonal" data-bs-toggle="collapse" data-bs-target="#newPollForm">
+                        <span class="material-icons-round">add</span>
+                        New Poll
+                    </button>
+                <% } %>
+            </div>
+
+            <% if (isHost && meeting.active) { %>
+                <div class="collapse mb-4" id="newPollForm">
+                    <div class="p-3 border rounded-3" style="background-color: rgba(0,0,0,0.02);">
+                        <form action="/meeting/<%= meeting._id %>/poll" method="POST">
+                            <input type="text" name="question" class="m3-input mb-3" placeholder="Question" required>
+                            <textarea name="options" class="m3-input mb-3" rows="3" placeholder="Options (one per line)" required></textarea>
+                            <button class="m3-btn m3-btn-primary w-100">Create Poll</button>
+                        </form>
+                    </div>
+                </div>
+            <% } %>
+
+            <div class="poll-list">
+                <% if (polls && polls.length > 0) { %>
+                    <% polls.forEach(poll => { %>
+                        <div id="poll-<%= poll._id %>" class="p-3 mb-3 border rounded-3" style="background-color: var(--md-sys-color-surface);">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <span class="material-icons-round fs-6">quiz</span>
+                                <%= poll.question %>
+                            </h6>
+                            
+                            <% 
+                                let maxVotes = 0;
+                                poll.options.forEach(opt => { if(opt.votes > maxVotes) maxVotes = opt.votes; });
+                                const totalVotes = poll.votedUsers ? poll.votedUsers.length : 0;
+                                const hasVoted = poll.votedUsers && poll.votedUsers.some(v => {
+                                    const vId = (v.userId && v.userId._id) ? v.userId._id.toString() : v.userId.toString();
+                                    return vId === user._id.toString();
+                                });
+                            %>
+                            
+                            <div class="mb-2 small text-muted">Total Votes: <span id="totalVotes-<%= poll._id %>"><%= totalVotes %></span></div>
+                            <% poll.options.forEach(option => { %>
+                                <% let pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0; %>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span><%= option.text %></span>
+                                        <span class="fw-bold" id="votes-<%= option._id %>"><%= option.votes %></span>
+                                    </div>
+                                    <div class="progress" style="height: 6px; border-radius: 12px; background-color: var(--md-sys-color-outline);">
+                                        <div class="progress-bar" id="bar-<%= option._id %>" style="width: <%= pct %>%; background-color: var(--md-sys-color-primary);"></div>
+                                    </div>
+                                </div>
+                            <% }) %>
+
+                            <% if (!hasVoted && !isHost && meeting.active) { %>
+                                <form action="/vote" method="POST">
+                                    <input type="hidden" name="meetingId" value="<%= meeting._id %>">
+                                    <input type="hidden" name="pollId" value="<%= poll._id %>">
+                                    <% poll.options.forEach(option => { %>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="radio" name="optionId" id="opt-<%= option._id %>" value="<%= option._id %>" required>
+                                            <label class="form-check-label small" for="opt-<%= option._id %>"><%= option.text %></label>
+                                        </div>
+                                    <% }) %>
+                                    <button type="submit" class="m3-btn m3-btn-tonal w-100 mt-2">Submit Vote</button>
+                                </form>
+                            <% } %>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="text-center py-4 text-muted">
+                        <span class="material-icons-round fs-1 mb-2">ballot</span>
+                        <p class="small">No polls created for this meeting.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Column -->
+    <div class="col-lg-6">
+        <div class="m3-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round text-success">group</span>
+                    <h4 class="fw-bold mb-0">Attendees</h4>
+                </div>
+                <span class="meeting-badge"><%= attendances.length %> joined</span>
+            </div>
+
+            <div class="attendance-list" style="max-height: 400px; overflow-y: auto;">
+                <% if(attendances && attendances.length > 0) { %>
+                    <% attendances.forEach(function(record) { %>
+                        <div class="d-flex align-items-center justify-content-between p-3 mb-2 border rounded-3" style="background-color: var(--md-sys-color-surface);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--md-sys-color-primary); color: white;">
+                                    <%= record.userId ? record.userId.username.charAt(0).toUpperCase() : '?' %>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold"><%= record.userId ? record.userId.username : 'Unknown' %></h6>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <% if (record.log && record.log.length > 0) { %>
+                                    <% record.log.forEach(event => { %>
+                                        <div class="smaller fw-bold <%= event.type === 'join' ? 'text-success' : 'text-danger' %>">
+                                            <span class="material-icons-round align-middle me-1" style="font-size: 14px;"><%= event.type === 'join' ? 'login' : 'logout' %></span>
+                                            <%= new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                        </div>
+                                    <% }) %>
+                                <% } else { %>
+                                    <div class="smaller fw-bold text-success">
+                                        <span class="material-icons-round align-middle me-1" style="font-size: 14px;">login</span>
+                                        <%= new Date(record.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                    </div>
+                                    <% if (record.leaveDate) { %>
+                                        <div class="smaller fw-bold text-danger">
+                                            <span class="material-icons-round align-middle me-1" style="font-size: 14px;">logout</span>
+                                            <%= new Date(record.leaveDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                        </div>
+                                    <% } %>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="text-center py-5 text-muted">
+                        <span class="material-icons-round fs-1 mb-2">person_off</span>
+                        <p class="small">Waiting for participants to join...</p>
+                    </div>
+                <% } %>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Client-side Meeting Interactions -->
+<script>
+    const btnShare = document.getElementById('btnShare');
+    const shareOverlay = document.getElementById('shareOverlay');
+    const qrOverlay = document.getElementById('qrOverlay');
+
+    if(btnShare && shareOverlay) {
+        btnShare.addEventListener('click', () => {
+            if (qrOverlay.classList.contains('show')) {
+                bootstrap.Collapse.getOrCreateInstance(qrOverlay).hide();
+            }
+            bootstrap.Collapse.getOrCreateInstance(shareOverlay).toggle();
+        });
+    }
+
+    const btnQR = document.getElementById('btnQR');
+    if(btnQR && qrOverlay) {
+        btnQR.addEventListener('click', () => {
+            if (shareOverlay.classList.contains('show')) {
+                bootstrap.Collapse.getOrCreateInstance(shareOverlay).hide();
+            }
+            bootstrap.Collapse.getOrCreateInstance(qrOverlay).toggle();
+        });
+    }
+
+    function copyLink() {
+        const url = document.getElementById('meetingUrl').textContent;
+        const fallbackCopy = (text) => {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            const success = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            return success;
+        };
+
+        if (!navigator.clipboard) {
+            if (fallbackCopy(url)) alert('Link copied!');
+            else alert('Failed to copy. Please manually copy the URL below.');
+            return;
+        }
+
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Meeting link copied to clipboard!');
+        }).catch(() => {
+            if (fallbackCopy(url)) alert('Link copied!');
+            else alert('Failed to copy. Please manually copy the URL below.');
+        });
+    }
+
+    // Attendance Report Generation
+    function generatePDFReport() {
+        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            alert('PDF library not loaded. Please check your internet connection and try again.');
+            return;
+        }
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const meetingTitle = <%- JSON.stringify(meeting.title) %>;
+            const hostName = <%- JSON.stringify(meeting.hostId.username) %>;
+            const date = <%- JSON.stringify(new Date(meeting.createdAt).toLocaleString()) %>;
+
+            doc.setFontSize(22);
+            doc.setTextColor(63, 81, 181);
+            doc.text("Meeting Attendance Report", 14, 20);
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(`Meeting: ${meetingTitle}`, 14, 30);
+            doc.text(`Host: ${hostName}`, 14, 37);
+            doc.text(`Date: ${date}`, 14, 44);
+            doc.line(14, 50, 196, 50);
+
+            doc.setFontSize(16);
+            doc.setTextColor(0);
+            doc.text("Attendees", 14, 60);
+            const attendeeRows = [];
+            <% attendances.forEach(a => { %>
+                {
+                    const joinTimes = [];
+                    const leaveTimes = [];
+                    <% if (a.log && a.log.length > 0) { %>
+                        <% a.log.forEach(event => { %>
+                            if ("<%= event.type %>" === 'join') joinTimes.push("<%= new Date(event.timestamp).toLocaleTimeString() %>");
+                            else leaveTimes.push("<%= new Date(event.timestamp).toLocaleTimeString() %>");
+                        <% }) %>
+                    <% } else { %>
+                        joinTimes.push("<%= new Date(a.date).toLocaleTimeString() %>");
+                        <% if (a.leaveDate) { %>
+                            leaveTimes.push("<%= new Date(a.leaveDate).toLocaleTimeString() %>");
+                        <% } %>
+                    <% } %>
+
+                    attendeeRows.push([
+                        "<%= a.userId ? a.userId.username : 'N/A' %>",
+                        joinTimes.join(', '),
+                        leaveTimes.length > 0 ? leaveTimes.join(', ') : 'In Session'
+                    ]);
+                }
+            <% }) %>
+            doc.autoTable({
+                head: [['Username', 'Join Times', 'Leave Times']],
+                body: attendeeRows,
+                startY: 65,
+                theme: 'striped',
+                headStyles: { fillColor: [63, 81, 181] }
+            });
+
+            if (doc.lastAutoTable) {
+                let finalY = doc.lastAutoTable.finalY + 15;
+                doc.setFontSize(16);
+                doc.text("Poll Results", 14, finalY);
+                <% if (polls && polls.length > 0) { %>
+                    <% polls.forEach((poll, pIdx) => { %>
+                        finalY += 10;
+                        doc.setFontSize(12);
+                        doc.setFont(undefined, 'bold');
+                        doc.text("Poll: <%= poll.question %>", 14, finalY);
+                        doc.setFont(undefined, 'normal');
+                var pollRows = [];
+                <% if (poll.votedUsers && Array.isArray(poll.votedUsers)) { %>
+                    <% poll.votedUsers.forEach(v => { %>
+                        <% 
+                            var userObj = v.userId ? v.userId.username : 'Unknown';
+                            var optObj = poll.options.find(o => o._id.toString() === v.optionId.toString());
+                            var optText = optObj ? optObj.text : 'N/A';
+                        %>
+                        pollRows.push(["<%= userObj %>", "<%= optText %>"]);
+                    <% }) %>
+                <% } %>
+                        doc.autoTable({
+                            head: [['Voter', 'Selected Option']],
+                            body: pollRows,
+                            startY: finalY + 5,
+                            theme: 'grid',
+                            headStyles: { fillColor: [100, 100, 100] }
+                        });
+                        if (doc.lastAutoTable) {
+                            finalY = doc.lastAutoTable.finalY + 5;
+                        } else {
+                            finalY += 20;
+                        }
+                    <% }) %>
+                <% } %>
+                doc.save(`${meetingTitle}_Report.pdf`);
+            } else {
+                doc.save(`${meetingTitle}_Report.pdf`);
+            }
+        } catch (e) {
+            console.error('PDF generation error:', e);
+            alert('Failed to generate PDF: ' + e.message);
+        }
+    }
+
+    const meetingId = '<%= meeting._id %>';
+    const currentUserId = '<%= user._id %>';
+    let lastAttendeeCount = <%= attendances.length %>;
+
+    async function refreshMeetingData() {
+        try {
+            const apiPath = window.location.pathname.replace(/\/$/, '') + '/api/data';
+            const response = await fetch(`${apiPath}?t=${Date.now()}`, { cache: 'no-store' });
+            const data = await response.json();
+
+            const currentAttendeeDataStr = JSON.stringify(data.attendances);
+            if (window.lastAttendeeDataStr !== currentAttendeeDataStr) {
+                window.lastAttendeeDataStr = currentAttendeeDataStr;
+                lastAttendeeCount = data.attendances.length;
+                
+                const badgeEl = document.querySelector('.meeting-badge');
+                if (badgeEl) badgeEl.textContent = `${lastAttendeeCount} joined`;
+                
+                const listContainer = document.querySelector('.attendance-list');
+                if (listContainer) {
+                    if (data.attendances.length > 0) {
+                        listContainer.innerHTML = data.attendances.map(record => `
+                            <div class="d-flex align-items-center justify-content-between p-3 mb-2 border rounded-3" style="background-color: var(--md-sys-color-surface);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--md-sys-color-primary); color: white;">
+                                        ${record.userId ? record.userId.username.charAt(0).toUpperCase() : '?'}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold">${record.userId ? record.userId.username : 'Unknown'}</h6>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    ${(record.log || []).map(event => `
+                                        <div class="smaller fw-bold ${event.type === 'join' ? 'text-success' : 'text-danger'}">
+                                            <span class="material-icons-round align-middle me-1" style="font-size: 14px;">${event.type === 'join' ? 'login' : 'logout'}</span>
+                                            ${new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        listContainer.innerHTML = '<div class="text-center py-5 text-muted"><span class="material-icons-round fs-1 mb-2">person_off</span><p class="small">Waiting for participants to join...</p></div>';
+                    }
+                }
+            }
+
+            // Update Polls
+            if (data.polls) {
+                for (const poll of data.polls) {
+                    try {
+                        const totalVotes = poll.votedUsers ? poll.votedUsers.length : 0;
+                        const totalVotesEl = document.getElementById(`totalVotes-${poll._id}`);
+                        if (totalVotesEl) totalVotesEl.textContent = totalVotes;
+                        if (poll.options && Array.isArray(poll.options)) {
+                            poll.options.forEach(option => {
+                                const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+                                const voteEl = document.getElementById(`votes-${option._id}`);
+                                const barEl = document.getElementById(`bar-${option._id}`);
+                                if (voteEl) voteEl.textContent = option.votes;
+                                if (barEl) barEl.style.width = pct + '%';
+                            });
+                        }
+                        // Hide vote form if current user already voted
+                        const hasVoted = poll.votedUsers && poll.votedUsers.some(v => {
+                            const vId = (v.userId && v.userId._id) ? v.userId._id.toString() : v.userId.toString();
+                            return vId === data.userId;
+                        });
+                        if (hasVoted) {
+                            const form = document.querySelector(`#poll-${poll._id} form`);
+                            if (form) form.style.display = 'none';
+                        }
+                    } catch (pollErr) {
+                        console.error('Poll update error:', pollErr);
+                    }
+                }
+            }
+
+            // Meeting End
+            if (!data.active) {
+                const badge = document.querySelector('.badge');
+                if (badge && badge.textContent === 'LIVE') {
+                    badge.classList.remove('bg-success');
+                    badge.classList.add('bg-secondary');
+                    badge.textContent = 'ENDED';
+                }
+            }
+        } catch (err) {
+            console.error("Polling error:", err);
+        }
+    }
+
+    if (<%= meeting.active %>) {
+        setInterval(refreshMeetingData, 5000);
+    }
+</script>
+
+<style>
+    .smaller { font-size: 0.75rem; }
+</style>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

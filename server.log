@@ -1,0 +1,14 @@
+Server running on port 3000
+
+==================================================
+📶 WiFi Attendance System Access Links:
+  👉 Local Access:   http://localhost:3000
+  👉 Over WiFi:      use your wifi ip i.e [wifi_ip]:3000
+
+  💡 How to find your computer's WiFi IP:
+     🐧 Linux:   Run 'ip addr'
+     🍎 macOS:   Run 'ipconfig getifaddr en0'
+     🪟 Windows: Run 'ipconfig' in CMD
+==================================================
+
+Connected to MongoDB

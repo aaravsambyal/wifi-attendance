@@ -1,0 +1,174 @@
+<%- include('partials/header') %>
+
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <% if (message) { %>
+            <div class="alert alert-success border-0 small m3-card py-2 mx-auto" style="max-width: 600px; background-color: rgba(76, 175, 80, 0.1); color: #4CAF50;">
+                <span class="material-icons-round align-middle me-2">check_circle</span>
+                <%= message %>
+            </div>
+        <% } %>
+        <% if (error) { %>
+            <div class="alert alert-danger border-0 small m3-card py-2 mx-auto" style="max-width: 600px; background-color: rgba(244, 67, 54, 0.1); color: #F44336;">
+                <span class="material-icons-round align-middle me-2">error</span>
+                <%= error %>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Start & Join -->
+    <div class="col-lg-5">
+        <div class="m3-card m3-card-elevated h-auto d-flex flex-column text-center mb-4" style="background-color: var(--md-sys-color-surface-1);">
+            <div class="mb-4">
+                <span class="material-icons-round fs-1 text-primary">sensors</span>
+                <h3 class="fw-bold mt-2">Start a Meeting</h3>
+                <p class="text-muted px-3 small">Create a secure room for same-network attendance verification.</p>
+            </div>
+            
+            <div class="mx-auto p-3 rounded-pill mb-4 small d-flex align-items-center gap-2" style="width: fit-content; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+                <span class="material-icons-round small">wifi</span>
+                Current Network IP: <span id="clientIpText"><%= clientIp %></span>
+            </div>
+
+            <form action="/meeting/create" method="POST" class="mt-auto">
+                <input type="text" name="title" class="m3-input text-center mb-3" placeholder="Meeting Title (e.g. Weekly Sync)" required>
+                <button type="submit" class="m3-btn m3-btn-primary w-100 py-3">
+                    <span class="material-icons-round">add_circle</span>
+                    Create Room
+                </button>
+            </form>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const hostname = window.location.hostname;
+                    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('172.')) {
+                        const ipText = document.getElementById("clientIpText");
+                        if (ipText) ipText.textContent = hostname;
+                    }
+                });
+            </script>
+        </div>
+
+        <div class="m3-card m3-card-elevated text-center" style="background-color: var(--md-sys-color-surface-1);">
+            <div class="mb-4">
+                <span class="material-icons-round fs-1 text-primary">link</span>
+                <h3 class="fw-bold mt-2">Join Meeting</h3>
+                <p class="text-muted px-3 small">Enter a meeting link or ID to join instantly</p>
+            </div>
+            
+            <div class="mt-auto">
+                <input type="text" id="joinIdInput" class="m3-input text-center" placeholder="Meeting ID or Link">
+                <button type="button" onclick="joinMeeting()" class="m3-btn m3-btn-tonal w-100 py-3 mt-2">
+                    <span class="material-icons-round">login</span>
+                    Join Room
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meetings History -->
+    <div class="col-lg-7">
+        <!-- Hosted Meetings -->
+        <div class="m3-card mb-4" style="background-color: var(--md-sys-color-surface-1);">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="material-icons-round text-primary">stars</span>
+                <h4 class="fw-bold mb-0">Rooms You Host</h4>
+            </div>
+            
+            <div class="meeting-list">
+                <% if (hostedMeetings && hostedMeetings.length > 0) { %>
+                    <% hostedMeetings.forEach(m => { %>
+                        <div class="d-flex align-items-center mb-2">
+                            <a href="/meeting/<%= m._id %>" class="flex-grow-1 d-flex justify-content-between align-items-center p-3 text-decoration-none rounded-3 ripple-container me-2" style="background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+                                <div>
+                                    <h6 class="mb-0 fw-bold"><%= m.title %></h6>
+                                    <div class="d-flex align-items-center gap-2 text-muted small mt-1">
+                                        <span class="material-icons-round small">schedule</span>
+                                        <%= new Date(m.createdAt).toLocaleDateString() %>
+                                        <% if(!m.active) { %><span class="badge bg-secondary ms-2 small" style="font-size: 10px;">ENDED</span><% } %>
+                                    </div>
+                                </div>
+                                <span class="material-icons-round text-primary">arrow_forward_ios</span>
+                            </a>
+                            <form action="/meeting/<%= m._id %>/delete" method="POST" onsubmit="return confirm('DANGER: This will permanently delete this meeting and all attendance records. Continue?')">
+                                <button type="submit" class="m3-btn" style="padding: 8px; background-color: rgba(211, 47, 47, 0.1); color: #D32F2F; border-radius: 50%;">
+                                    <span class="material-icons-round">delete_outline</span>
+                                </button>
+                            </form>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="text-center py-4 text-muted">
+                        <span class="material-icons-round fs-2 mb-2">history</span>
+                        <p class="mb-0 small">No meetings hosted yet.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Attended Meetings -->
+        <div class="m3-card" style="background-color: var(--md-sys-color-surface-1);">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="material-icons-round text-primary">how_to_reg</span>
+                <h4 class="fw-bold mb-0">Joined History</h4>
+            </div>
+            
+            <div class="meeting-list">
+                <% if (attendedHistory && attendedHistory.length > 0) { %>
+                    <% attendedHistory.forEach(h => { %>
+                        <div class="d-flex align-items-center mb-2">
+                            <a href="/meeting/<%= h.meeting._id %>" class="flex-grow-1 d-flex justify-content-between align-items-center p-3 text-decoration-none rounded-3 ripple-container me-2" style="background-color: var(--md-sys-color-surface-variant); opacity: 0.9; color: var(--md-sys-color-on-surface-variant);">
+                                <div>
+                                    <h6 class="mb-0 fw-bold"><%= h.meeting.title %></h6>
+                                    <small class="text-muted"><%= new Date(h.meeting.createdAt).toLocaleDateString() %></small>
+                                </div>
+                                <span class="material-icons-round text-muted" style="font-size: 18px;">visibility</span>
+                            </a>
+                            <form action="/attendance/<%= h.attendanceId %>/delete" method="POST" onsubmit="return confirm('Remove this meeting from your history?')">
+                                <button type="submit" class="m3-btn" style="padding: 8px; background-color: rgba(0, 0, 0, 0.05); color: var(--md-sys-color-on-surface-variant); border-radius: 50%;">
+                                    <span class="material-icons-round">close</span>
+                                </button>
+                            </form>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="text-center py-4 text-muted">
+                        <p class="mb-0 small">No attendance records found.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ripple-container {
+        transition: all 0.2s cubic-bezier(0.0, 0.0, 0.2, 1);
+    }
+    .ripple-container:hover {
+        background-color: rgba(63, 81, 181, 0.08) !important;
+        transform: translateX(4px);
+    }
+</style>
+
+<script>
+    function joinMeeting() {
+        let input = document.getElementById('joinIdInput').value.trim();
+        if(!input) return alert('Please enter a meeting ID or link');
+
+        const parts = input.split('/');
+        const meetingId = parts[parts.length - 1];
+        
+        if(meetingId.length < 20) {
+            return alert('Please enter a valid Meeting ID or link');
+        }
+
+        window.location.href = `/meeting/${meetingId}`;
+    }
+</script>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

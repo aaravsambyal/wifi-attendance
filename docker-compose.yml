@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    restart: always
+    environment:
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-supersecretjwtkey_replace_in_prod}
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./data:/usr/src/app/data

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wifi-attendence</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231A237E'><path d='M12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m6 2c0-3.31-2.69-6-6-6s-6 2.69-6 6c0 2.22 1.21 4.15 3 5.19l1-1.74c-1.19-.7-2-1.97-2-3.45 0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.48-.81 2.75-2 3.45l1 1.74c1.79-1.04 3-2.97 3-5.19M12 3C6.48 3 2 7.48 2 13c0 3.7 2.01 6.92 4.99 8.65l1-1.73C5.61 18.53 4 15.96 4 13c0-4.41 3.59-8 8-8s8 3.59 8 8c0 2.96-1.61 5.53-4 6.92l1 1.73c2.99-1.73 5-4.95 5-8.65 0-5.52-4.48-10-10-10z'/></svg>" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238C9EFF'><path d='M12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m6 2c0-3.31-2.69-6-6-6s-6 2.69-6 6c0 2.22 1.21 4.15 3 5.19l1-1.74c-1.19-.7-2-1.97-2-3.45 0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.48-.81 2.75-2 3.45l1 1.74c1.79-1.04 3-2.97 3-5.19M12 3C6.48 3 2 7.48 2 13c0 3.7 2.01 6.92 4.99 8.65l1-1.73C5.61 18.53 4 15.96 4 13c0-4.41 3.59-8 8-8s8 3.59 8 8c0 2.96-1.61 5.53-4 6.92l1 1.73c2.99-1.73 5-4.95 5-8.65 0-5.52-4.48-10-10-10z'/></svg>" media="(prefers-color-scheme: dark)">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+     <!-- Material theme -->
+    <style>
+        :root {
+           
+            --md-sys-color-primary: #1A237E;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #E8EAF6;
+            --md-sys-color-on-primary-container: #1A237E;
+            --md-sys-color-surface: #FCFCFC;
+            --md-sys-color-on-surface: #212121;
+            --md-sys-color-surface-variant: #FFFFFF;
+            --md-sys-color-on-surface-variant: #424242;
+            --md-sys-color-on-surface-muted: #757575;
+            --md-sys-color-outline: #EEEEEE;
+            --md-sys-color-surface-1: #F8F9FF; 
+            --md-sys-color-surface-2: #F1F3FB;
+            --radius-m3: 16px;
+            --radius-btn: 24px;
+            --transition-speed: 0.3s;
+        }
+
+        @media (max-width: 576px) {
+            .m3-card { padding: 1.25rem !important; }
+            h2 { font-size: 1.5rem !important; }
+            .navbar-brand { font-size: 1.1rem !important; }
+            .m3-btn { 
+                padding: 0.5rem 0.75rem !important; 
+                font-size: 0.85rem !important;
+            }
+            .theme-toggle {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .container { padding-left: 0.75rem; padding-right: 0.75rem; }
+            .navbar-m3 { padding: 0.5rem 0 !important; }
+            .navbar div.d-flex.gap-3 { gap: 0.5rem !important; }
+        }
+
+        [data-theme="dark"] {
+            --md-sys-color-primary: #C5CAE9;
+            --md-sys-color-on-primary: #1A237E;
+            --md-sys-color-primary-container: #3949AB;
+            --md-sys-color-on-primary-container: #E8EAF6;
+            --md-sys-color-surface: #121212;
+            --md-sys-color-on-surface: #E3E3E3;
+            --md-sys-color-surface-variant: #1E1E1E;
+            --md-sys-color-on-surface-variant: #B0BEC5;
+            --md-sys-color-on-surface-muted: #78909C;
+            --md-sys-color-outline: #2C2C2C;
+            --md-sys-color-surface-1: #1A1A1C; 
+            --md-sys-color-surface-2: #212124;
+        }
+
+        body {
+            font-family: 'Roboto', 'Google Sans', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            transition: background-color var(--transition-speed);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .m3-card {
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            border-radius: var(--radius-m3);
+            padding: 24px;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .m3-card-elevated {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--md-sys-color-on-surface);
+            font-family: 'Google Sans', sans-serif;
+            font-weight: 500;
+        }
+
+        p, span, label, td, th {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .text-primary {
+            color: var(--md-sys-color-primary) !important;
+        }
+
+        [data-theme="dark"] .text-muted,
+        [data-theme="dark"] .smaller,
+        [data-theme="dark"] .small,
+        [data-theme="dark"] .text-on-surface-variant {
+            color: var(--md-sys-color-on-surface-variant) !important;
+        }
+
+        .text-on-surface {
+            color: var(--md-sys-color-on-surface) !important;
+        }
+
+        .m3-btn {
+            border-radius: var(--radius-btn);
+            padding: 10px 24px;
+            font-weight: 500;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: inherit;
+        }
+
+        .m3-btn .material-icons-round {
+            color: inherit;
+        }
+
+        .m3-btn-primary {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary) !important;
+        }
+
+        .m3-btn-primary .material-icons-round {
+            color: var(--md-sys-color-on-primary) !important;
+        }
+        
+        .m3-btn-tonal {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container) !important;
+            box-shadow: none;
+        }
+
+        .m3-btn-tonal .material-icons-round {
+            background-color: rgba(63, 81, 181, 0.12);
+            border-radius: 50%;
+            padding: 4px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-on-primary-container) !important;
+        }
+        
+        [data-theme="dark"] .m3-btn-tonal .material-icons-round {
+            background-color: rgba(140, 158, 255, 0.15);
+            color: var(--md-sys-color-primary) !important;
+        }
+
+        .m3-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .m3-input {
+            background-color: var(--md-sys-color-surface-1);
+            border: none;
+            border-bottom: 2px solid var(--md-sys-color-outline);
+            border-radius: 8px 8px 0 0;
+            padding: 12px 16px;
+            color: var(--md-sys-color-on-surface);
+            width: 100%;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+        
+        [data-theme="light"] .m3-input {
+            background-color: #EEEEEE;
+        }
+        
+        .m3-input:focus {
+            outline: none;
+            border-bottom-color: var(--md-sys-color-primary);
+            background-color: rgba(63, 81, 181, 0.05);
+        }
+
+        .navbar-m3 {
+            background-color: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline);
+            padding: 12px 0;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .meeting-badge {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-menu.m3-card {
+            background-color: var(--md-sys-color-surface-variant) !important;
+            border: 1px solid var(--md-sys-color-outline);
+            min-width: 200px;
+            padding: 8px;
+            margin-top: 8px !important;
+        }
+
+        .dropdown-item {
+            color: var(--md-sys-color-on-surface) !important;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(63, 81, 181, 0.12);
+        }
+
+        .dropdown-item .material-icons-round {
+            font-size: 20px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .dropdown-divider {
+            border-top: 1px solid var(--md-sys-color-outline);
+            margin: 8px 0;
+        }
+
+        .dropdown-item.text-danger {
+            color: #FF5252 !important;
+        }
+        
+        .dropdown-item.text-danger .material-icons-round {
+            color: #FF5252 !important;
+        }
+
+        .glass-overlay {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        [data-theme="light"] .glass-overlay {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper .m3-input {
+            padding-right: 44px;
+            margin-bottom: 0;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-on-surface-variant);
+            transition: background 0.2s;
+            z-index: 1;
+        }
+
+        .password-toggle:hover {
+            background: rgba(128, 128, 128, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-m3 mb-4 sticky-top">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold" href="/" style="color: var(--md-sys-color-primary);">
+            wifi-attendence
+        </a>
+        
+        <div class="d-flex align-items-center gap-3">
+            <a href="https://github.com/akshat-jasrotia/wifi-attendence" target="_blank" class="d-flex align-items-center" style="color: var(--md-sys-color-on-surface-variant); text-decoration: none;" title="GitHub">
+                <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+            <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+                <span class="material-icons-round" id="themeIcon">dark_mode</span>
+            </button>
+            
+            <% if (typeof user !== 'undefined' && user) { %>
+                <div class="dropdown">
+                    <button class="m3-btn m3-btn-tonal dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <span class="material-icons-round">account_circle</span>
+                        <%= user.username %>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end m3-card glass-overlay">
+                        <li><a class="dropdown-item py-2" href="/dashboard"><span class="material-icons-round align-middle me-2">dashboard</span> Dashboard</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item py-2 text-danger" href="/logout"><span class="material-icons-round align-middle me-2">logout</span> Logout</a></li>
+                    </ul>
+                </div>
+            <% } else { %>
+                <a href="/login" class="m3-btn" style="color: var(--md-sys-color-primary);">Login</a>
+                <a href="/signup" class="m3-btn m3-btn-primary">Get Started</a>
+            <% } %>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+<script>
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+    const themeIcon = document.getElementById('themeIcon');
+
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    html.setAttribute('data-theme', savedTheme);
+    updateIcon(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateIcon(newTheme);
+    });
+
+    function updateIcon(theme) {
+        if(themeIcon) themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+
+    function togglePasswordVisibility(btn) {
+        const wrapper = btn.closest('.password-wrapper');
+        const input = wrapper.querySelector('input');
+        const icon = btn.querySelector('.material-icons-round');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.textContent = 'visibility';
+        } else {
+            input.type = 'password';
+            icon.textContent = 'visibility_off';
+        }
+    }
+</script>
