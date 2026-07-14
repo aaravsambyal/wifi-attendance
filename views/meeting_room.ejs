@@ -164,7 +164,8 @@
                                 poll.options.forEach(opt => { if(opt.votes > maxVotes) maxVotes = opt.votes; });
                                 const totalVotes = poll.votedUsers ? poll.votedUsers.length : 0;
                                 const hasVoted = poll.votedUsers && poll.votedUsers.some(v => {
-                                    const vId = (v.userId && v.userId._id) ? v.userId._id.toString() : v.userId.toString();
+                                    if (!v.userId) return false;
+                                    const vId = v.userId._id ? v.userId._id.toString() : v.userId.toString();
                                     return vId === user._id.toString();
                                 });
                             %>
@@ -326,6 +327,7 @@
         try {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            // Safely pass values via JSON.stringify to prevent Reflected/JS injection XSS
             const meetingTitle = <%- JSON.stringify(meeting.title) %>;
             const hostName = <%- JSON.stringify(meeting.hostId.username) %>;
             const date = <%- JSON.stringify(new Date(meeting.createdAt).toLocaleString()) %>;
@@ -361,7 +363,7 @@
                     <% } %>
 
                     attendeeRows.push([
-                        "<%= a.userId ? a.userId.username : 'N/A' %>",
+                        <%- JSON.stringify(a.userId ? a.userId.username : 'N/A') %>,
                         joinTimes.join(', '),
                         leaveTimes.length > 0 ? leaveTimes.join(', ') : 'In Session'
                     ]);
@@ -384,17 +386,17 @@
                         finalY += 10;
                         doc.setFontSize(12);
                         doc.setFont(undefined, 'bold');
-                        doc.text("Poll: <%= poll.question %>", 14, finalY);
+                        doc.text("Poll: " + <%- JSON.stringify(poll.question) %>, 14, finalY);
                         doc.setFont(undefined, 'normal');
                 var pollRows = [];
                 <% if (poll.votedUsers && Array.isArray(poll.votedUsers)) { %>
                     <% poll.votedUsers.forEach(v => { %>
                         <% 
-                            var userObj = v.userId ? v.userId.username : 'Unknown';
+                            var userObj = v.userId ? (v.userId.username || 'Unknown') : 'Unknown';
                             var optObj = poll.options.find(o => o._id.toString() === v.optionId.toString());
                             var optText = optObj ? optObj.text : 'N/A';
                         %>
-                        pollRows.push(["<%= userObj %>", "<%= optText %>"]);
+                        pollRows.push([<%- JSON.stringify(userObj) %>, <%- JSON.stringify(optText) %>]);
                     <% }) %>
                 <% } %>
                         doc.autoTable({
@@ -421,9 +423,23 @@
         }
     }
 
-    const meetingId = '<%= meeting._id %>';
-    const currentUserId = '<%= user._id %>';
+    const meetingId = <%- JSON.stringify(meeting._id) %>;
+    const currentUserId = <%- JSON.stringify(user._id) %>;
     let lastAttendeeCount = <%= attendances.length %>;
+
+    // Client-side HTML Entity Escaper for dynamic rendering (DOM XSS Protection)
+    function escapeHTML(str) {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
 
     async function refreshMeetingData() {
         try {
@@ -446,10 +462,10 @@
                             <div class="d-flex align-items-center justify-content-between p-3 mb-2 border rounded-3" style="background-color: var(--md-sys-color-surface);">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--md-sys-color-primary); color: white;">
-                                        ${record.userId ? record.userId.username.charAt(0).toUpperCase() : '?'}
+                                        ${record.userId ? escapeHTML(record.userId.username.charAt(0).toUpperCase()) : '?'}
                                     </div>
                                     <div>
-                                        <h6 class="mb-0 fw-bold">${record.userId ? record.userId.username : 'Unknown'}</h6>
+                                        <h6 class="mb-0 fw-bold">${record.userId ? escapeHTML(record.userId.username) : 'Unknown'}</h6>
                                     </div>
                                 </div>
                                 <div class="text-end">
