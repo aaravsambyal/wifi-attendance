@@ -41,9 +41,12 @@ function getWifiDetails() {
       { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] },
     ).trim();
     if (output) {
-      const parts = output.split(":");
-      if (parts.length >= 3) {
-        const ssid = parts[1];
+      // Split on colon ONLY if not escaped/not inside BSSID part (negative lookbehind check)
+      // Matches colons not preceded by a backslash or within hex pairs of BSSID
+      const parts = output.split(/(?<!\\):/);
+      if (parts.length >= 2) {
+        const ssid = parts[1].replace(/\\:/g, ":");
+        // Reconstruct bssid from remainder parts
         const bssid = parts.slice(2).join(":").replace(/\\/g, "");
         return { ssid, bssid };
       }
@@ -70,20 +73,11 @@ function isSameNetwork(ipA, ipB) {
   const cleanB = ipB.replace("::ffff:", "").trim();
   if (cleanA === cleanB) return true;
 
-  const isPrivate = (ip) => {
-    return (
-      ip.startsWith("192.168.") ||
-      ip.startsWith("172.") ||
-      ip.startsWith("10.") ||
-      ip === "127.0.0.1" ||
-      ip === "localhost"
-    );
-  };
+  // Local loopback checks
+  const isLoopback = (ip) => ip === "127.0.0.1" || ip === "localhost";
+  if (isLoopback(cleanA) && isLoopback(cleanB)) return true;
 
-  if (isPrivate(cleanA) && isPrivate(cleanB)) {
-    return true;
-  }
-
+  // Verify they belong to the same IPv4 /24 subnet (matching first 3 octets)
   const partsA = cleanA.split(".");
   const partsB = cleanB.split(".");
   if (partsA.length === 4 && partsB.length === 4) {
@@ -116,7 +110,13 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.set("trust proxy", true);
+
+// Enable trust proxy ONLY if environment variable is set to true
+if (process.env.TRUST_PROXY === "true") {
+  app.set("trust proxy", true);
+} else {
+  app.set("trust proxy", false);
+}
 
 // Connect to MongoDB Database
 mongoose
@@ -127,9 +127,12 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
-// Helper function to extract user IP
+// Helper function to extract user IP safely
 function getClientIp(req) {
-  return req.headers["x-forwarded-for"] || req.socket.remoteAddress || req.ip;
+  if (process.env.TRUST_PROXY === "true" && req.headers["x-forwarded-for"]) {
+    return req.headers["x-forwarded-for"].split(",")[0].trim();
+  }
+  return req.socket.remoteAddress || req.ip;
 }
 
 // Authentication Routes (Login, Signup, Logout)
@@ -260,7 +263,10 @@ app.get("/meeting/:id", authMiddleware, async (req, res) => {
 
     const isHost = meeting.hostId._id.toString() === req.user._id.toString();
     let userAttendance = attendances.find(
-      (a) => a.userId._id.toString() === req.user._id.toString(),
+      (a) => {
+        const aUid = (a.userId && (a.userId._id || a.userId)).toString();
+        return aUid === req.user._id.toString();
+      }
     );
 
     // Auto-mark attendance for non-host users entering the meeting room
@@ -282,6 +288,13 @@ app.get("/meeting/:id", authMiddleware, async (req, res) => {
         attendances.push(attendance);
         userAttendance = attendance;
       }
+    }
+
+    // Access Control Check: Direct access to /meeting/:id by non-hosts requires recorded attendance
+    if (!isHost && !userAttendance) {
+      return res.redirect(
+        `/dashboard?error=Attendance Denied! You are not on the same WiFi network as the Host or have not checked in.`
+      );
     }
 
     // Generate QR for inline display
